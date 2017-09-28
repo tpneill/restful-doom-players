@@ -63,6 +63,42 @@ def distanceBetweenPoints(x1, y1, x2, y2):
 	dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 	return dist
 
+def simpleTrig(a, b):
+	logging.debug('simpleTrig({}, {})'.format(a, b))
+	return math.degrees(
+		math.acos(float(a) / float(b))
+	)
+
+def turnToFacePoint(destX, destY):
+	currentData = getAction('player')
+	
+	distance = distanceBetweenPoints(
+		currentData["position"]["x"],
+		currentData["position"]["y"],
+		destX,
+		destY
+	)
+	
+	angle = int(simpleTrig(
+		abs(currentData["position"]["x"] - destX),
+		abs(distance)		
+	))
+
+	logging.debug('Uncorrected angle is {}'.format(angle))
+	
+	if currentData["position"]["x"] < destX and currentData["position"]["y"] < destY:
+		angle = 90 - angle
+	elif currentData["position"]["x"] < destX and currentData["position"]["y"] >= destY:
+		angle += 90
+	elif currentData["position"]["x"] >= destX and currentData["position"]["y"] >= destY:
+		angle = 270 - angle
+	elif currentData["position"]["x"] >= destX and currentData["position"]["y"] < destY:
+		angle += 270
+	
+	logging.debug('Corrected angle is {}'.format(angle))
+	
+	reorientPlayer(angle)
+
 
 def moveToPoint(destX, destY, attempts=20, pause=1, accuracy=25):
 	"""Try to move in a straight line from where we are to a destination
@@ -86,6 +122,9 @@ def moveToPoint(destX, destY, attempts=20, pause=1, accuracy=25):
 			destX,
 			destY
 		)
+
+		if abs(distance) < 300:
+			shoot()
 		
 		if abs(distance) < accuracy:
 			logging.debug('moveToPoint is close enough - {} x {} vs {} x {}'.format(
@@ -96,7 +135,9 @@ def moveToPoint(destX, destY, attempts=20, pause=1, accuracy=25):
 			))
 			return True
 		
+		turnToFacePoint(destX, destY)
 		
+		movePlayer(100)
 		
 		time.sleep(pause)
 	
@@ -125,6 +166,9 @@ def findNearestEnemy():
 	nearestEnemyDistance = 999999.0
 	
 	for enemy in enemies:
+		if enemy["health"] < 0:
+			pass
+			
 		distance = distanceBetweenPoints(
 			playerData["position"]["x"],
 			playerData["position"]["y"],
@@ -180,6 +224,6 @@ def reorientPlayer(angle, attempts=10, pause=1, accuracy=10):
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 enemy = findNearestEnemy()
-reorientPlayer(0)
+print json.dumps(enemy, indent=4)
 moveToPoint(enemy["position"]["x"], enemy["position"]["y"])
 shoot()
